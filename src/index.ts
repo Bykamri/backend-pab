@@ -12,20 +12,79 @@ import { mahasiswaRoutes } from './routes/mahasiswa';
 import { dosenRoutes } from './routes/dosen';
 import { matakuliahRoutes } from './routes/matakuliah';
 
+// Tambahkan pengecekan Vercel env
 const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+
 // Inisialisasi Elysia dan pasang CORS
 export const app = new Elysia().use(cors());
 
+// ==========================================
+// ROUTE HTML SEDERHANA UNTUK CEK DOMAIN
+// ==========================================
+app.get('/', () => {
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Backend Akademik Siola</title>
+            <style>
+                body { 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    text-align: center; 
+                    padding: 50px; 
+                    background-color: #f0f2f5; 
+                    color: #333; 
+                }
+                .container { 
+                    background: white; 
+                    padding: 40px; 
+                    border-radius: 12px; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+                    max-width: 500px; 
+                    margin: auto; 
+                }
+                h1 { color: #0070f3; margin-top: 0; }
+                .status { 
+                    display: inline-block; 
+                    padding: 10px 20px; 
+                    background: #e6f7ff; 
+                    color: #005bb5; 
+                    border-radius: 20px; 
+                    font-weight: bold; 
+                    font-size: 14px; 
+                    margin-top: 15px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🚀 Server Berjalan!</h1>
+                <p>Sistem Backend Akademik (PAB) berhasil di-deploy ke Vercel dan merespon dengan baik.</p>
+                <div class="status">🟢 Status: Online</div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    // Kembalikan Response dengan Content-Type HTML
+    return new Response(htmlContent, {
+        headers: {
+            'Content-Type': 'text/html; charset=utf8'
+        }
+    });
+});
+// ==========================================
+
 // HANYA JALANKAN DI LOKAL (Development)
 if (!isProd) {
-    // 1. Auto-Generate Folder 'uploads' di lokal
     const uploadDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
         console.log("  Folder 'uploads' berhasil dibuat secara otomatis.");
     }
 
-    // 2. Gunakan static plugin untuk melayani file lokal
     app.use(staticPlugin({
         assets: 'uploads',
         prefix: '/uploads'
@@ -39,8 +98,11 @@ app.use(authRoutes)
    .use(dosenRoutes)
    .use(matakuliahRoutes);
 
-// Jalankan server HTTP hanya jika di lokal (Vercel menggunakan api/index.ts sebagai handler)
+// Cegah app.listen berjalan di Vercel
 if (!isProd) {
     app.listen(process.env.PORT || 8000);
     console.log(`  Backend Akademik berjalan di http://localhost:${app.server?.port}`);
 }
+
+// Pastikan export default ada untuk Vercel
+export default app;
