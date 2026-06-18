@@ -19,6 +19,28 @@ const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '
 export const app = new Elysia().use(cors());
 
 // ==========================================
+// 🌟 MIDDLEWARE GLOBAL UNTUK LOGGING
+// ==========================================
+// ==========================================
+// 🌟 MIDDLEWARE GLOBAL UNTUK LOGGING
+// ==========================================
+app
+  .onRequest(({ request }) => {
+    // Catat waktu mulai saat request masuk
+    console.log(`[${new Date().toISOString()}] ➡️ MASUK: ${request.method} ${request.url}`);
+  })
+  .onAfterResponse(({ request, set }) => {
+    // Gunakan onAfterResponse bukan onResponse
+    console.log(`[${new Date().toISOString()}] ⬅️ KELUAR: ${request.method} ${request.url} - Status: ${set.status}`);
+  })
+  .onError(({ code, error, request }) => {
+    // Catat jika terjadi error pada endpoint
+    console.error(`[${new Date().toISOString()}] ❌ ERROR [${code}]: ${request.method} ${request.url}`);
+    console.error(error);
+  });
+// ==========================================
+
+// ==========================================
 // ROUTE HTML SEDERHANA UNTUK CEK DOMAIN
 // ==========================================
 app.get('/', () => {
@@ -99,8 +121,10 @@ app.use(authRoutes)
    .use(matakuliahRoutes);
 
 // Cegah app.listen berjalan di Vercel
-if (!isProd) {
-    app.listen(process.env.PORT || 8000);
+const isVercel = process.env.VERCEL === '1';
+if (!isVercel) {
+    // Sesuaikan port ke 3000 jika aplikasi flutter menembak port 3000
+    app.listen(process.env.PORT || 3000); 
     console.log(`  Backend Akademik berjalan di http://localhost:${app.server?.port}`);
 }
 

@@ -19,7 +19,7 @@ export const dosenRoutes = new Elysia({ prefix: '/dosen' })
 
         try {
             // Semua orang (termasuk mahasiswa) boleh melihat daftar dosen aktif
-            const sql = `SELECT kodedsn, nama, kelamin, prodi FROM dosen WHERE aktif = 1 ORDER BY nama ASC`;
+            const sql = `SELECT kodedsn, nama, kelamin, prodi FROM dosen WHERE aktif = true ORDER BY nama ASC`;
             const rows = await executeQuery(sql);
             return { status: 'success', data: rows };
         } catch (error: any) {
