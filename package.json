@@ -1,0 +1,23 @@
+{
+  "name": "backend-eas",
+  "private": true,
+  "scripts": {
+    "dev": "bun --env-file=.env.local run --hot src/index.ts",
+    "prod:local": "bun --env-file=.env run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.4.2",
+    "@elysiajs/jwt": "^1.4.2",
+    "@elysiajs/static": "^1.4.10",
+    "@vercel/blob": "^2.4.0",
+    "elysia": "^1.4.29",
+    "mysql2": "^3.22.5",
+    "postgres": "^3.4.9"
+  }
+}
