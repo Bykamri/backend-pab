@@ -12,8 +12,7 @@ import { mahasiswaRoutes } from './routes/mahasiswa';
 import { dosenRoutes } from './routes/dosen';
 import { matakuliahRoutes } from './routes/matakuliah';
 
-const isProd = process.env.NODE_ENV === 'production';
-
+const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
 // Inisialisasi Elysia dan pasang CORS
 export const app = new Elysia().use(cors());
 

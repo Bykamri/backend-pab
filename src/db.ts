@@ -12,7 +12,8 @@ if (isProd) {
     pgClient = postgres(dbUrl, { 
         ssl: 'require',
         max: 1, 
-        idle_timeout: 0 
+        idle_timeout: 0 ,
+        connect_timeout: 0
     });
     console.log("🔌 Mode Database: PostgreSQL (Production / Supabase)");
 } else {
