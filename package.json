@@ -1,6 +1,7 @@
 {
   "name": "backend-eas",
-  "private": true,
+  "private": true, 
+  "type": "module",
   "scripts": {
     "dev": "bun --env-file=.env.local run --hot src/index.ts",
     "prod:local": "bun --env-file=.env run src/index.ts"
