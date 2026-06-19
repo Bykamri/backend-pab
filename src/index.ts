@@ -19,28 +19,6 @@ const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '
 export const app = new Elysia().use(cors());
 
 // ==========================================
-// 🌟 MIDDLEWARE GLOBAL UNTUK LOGGING
-// ==========================================
-// ==========================================
-// 🌟 MIDDLEWARE GLOBAL UNTUK LOGGING
-// ==========================================
-app
-  .onRequest(({ request }) => {
-    // Catat waktu mulai saat request masuk
-    console.log(`[${new Date().toISOString()}] ➡️ MASUK: ${request.method} ${request.url}`);
-  })
-  .onAfterResponse(({ request, set }) => {
-    // Gunakan onAfterResponse bukan onResponse
-    console.log(`[${new Date().toISOString()}] ⬅️ KELUAR: ${request.method} ${request.url} - Status: ${set.status}`);
-  })
-  .onError(({ code, error, request }) => {
-    // Catat jika terjadi error pada endpoint
-    console.error(`[${new Date().toISOString()}] ❌ ERROR [${code}]: ${request.method} ${request.url}`);
-    console.error(error);
-  });
-// ==========================================
-
-// ==========================================
 // ROUTE HTML SEDERHANA UNTUK CEK DOMAIN
 // ==========================================
 app.get('/', () => {

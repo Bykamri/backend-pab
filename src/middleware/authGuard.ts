@@ -7,7 +7,8 @@ export const authGuard = new Elysia({ name: 'authGuard' })
     .use(
         jwt({
             name: 'jwt',
-            secret: process.env.JWT_SECRET || 'rahasia_akademik_siola_123'        })
+            secret: process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'rahasia_akademik_siola_123'        
+        })
     )
     // 1. Ekstrak dan Verifikasi Token (derive)
     .derive({as: "scoped"}, async ({ jwt, headers, request }) => {
