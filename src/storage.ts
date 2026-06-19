@@ -13,7 +13,7 @@ export async function uploadFile(file: File, prefix: string): Promise<string> {
     if (isProd) {
 
         const blob = await put(filename, file, { 
-            access: 'private', 
+            access: 'public', 
             token: process.env.BLOB_READ_WRITE_TOKEN 
         });
         
