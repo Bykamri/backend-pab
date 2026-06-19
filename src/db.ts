@@ -89,3 +89,38 @@ export async function executeQuery(query: string, params: any[] = []): Promise<a
         return rows as any[];
     }
 }
+
+/**
+ * Menjalankan beberapa query sebagai satu transaction atomik.
+ * Jika salah satu query gagal, semua perubahan di-rollback.
+ *
+ * Penting untuk operasi multi-tabel seperti registrasi (insert ke
+ * `users` + `mahasiswa` sekaligus) agar tidak ada data "setengah jadi"
+ * jika salah satu insert gagal di tengah jalan.
+ */
+export async function executeTransaction(
+    operations: { query: string; params: any[] }[]
+): Promise<void> {
+    if (isProd) {
+        await pgClient.begin(async (sql) => {
+            for (const op of operations) {
+                const pgQuery = convertToPostgres(op.query, op.params);
+                await sql.unsafe(pgQuery, op.params as any);
+            }
+        });
+    } else {
+        const connection = await mysqlPool.getConnection();
+        try {
+            await connection.beginTransaction();
+            for (const op of operations) {
+                await connection.execute(op.query, op.params);
+            }
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+}

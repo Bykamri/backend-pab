@@ -1,7 +1,7 @@
 // src/routes/auth.ts
 import { Elysia } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
-import { executeQuery } from '../db';
+import { executeQuery, executeTransaction } from '../db';
 
 const prodiCodes: Record<string, string> = {
     'Teknik Informatika': '146',
@@ -64,15 +64,20 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
                 cost: 10,
             });
 
-            await executeQuery(
-                `INSERT INTO users (username, password, role) VALUES (?, ?, 'mahasiswa')`,
-                [generatedNim, hashedPassword]
-            );
-
-            await executeQuery(
-                `INSERT INTO mahasiswa (nim, nama, angkatan, prodi, lulus) VALUES (?, ?, ?, ?, 0)`,
-                [generatedNim, nama, fullYear.toString(), prodi]
-            );
+            // PENTING: Gunakan transaction agar insert ke `users` dan `mahasiswa`
+            // bersifat atomik. Jika salah satu gagal, semua di-rollback —
+            // mencegah akun "setengah jadi" yang menyebabkan NIM/username
+            // tidak bisa dipakai ulang padahal datanya tidak lengkap.
+            await executeTransaction([
+                {
+                    query: `INSERT INTO users (username, password, role) VALUES (?, ?, 'mahasiswa')`,
+                    params: [generatedNim, hashedPassword],
+                },
+                {
+                    query: `INSERT INTO mahasiswa (nim, nama, angkatan, prodi, lulus) VALUES (?, ?, ?, ?, ?)`,
+                    params: [generatedNim, nama, fullYear.toString(), prodi, false],
+                },
+            ]);
 
             return {
                 status: 'success',
