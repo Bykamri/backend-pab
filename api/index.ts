@@ -1,10 +1,13 @@
 // File: api/index.ts
 import { app } from '../src/index';
 
-// Mengekspor setiap metode HTTP agar Vercel menggunakan standar Web API (Request -> Response)
-export const GET = app.handle;
-export const POST = app.handle;
-export const PUT = app.handle;
-export const PATCH = app.handle;
-export const DELETE = app.handle;
-export const OPTIONS = app.handle;
+async function handler(request: Request): Promise<Response> {
+    return app.handle(request);
+}
+
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const PATCH = handler;
+export const DELETE = handler;
+export const OPTIONS = handler;
