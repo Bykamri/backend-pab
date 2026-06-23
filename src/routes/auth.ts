@@ -75,7 +75,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
                 },
                 {
                     query: `INSERT INTO mahasiswa (nim, nama, angkatan, prodi, lulus) VALUES (?, ?, ?, ?, ?)`,
-                    params: [generatedNim, nama, fullYear.toString(), prodi, false],
+                    params: [generatedNim, nama, fullYear.toString(), prodi, 0],
                 },
             ]);
 
