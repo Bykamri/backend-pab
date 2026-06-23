@@ -118,6 +118,7 @@ export const mahasiswaRoutes = new Elysia({ prefix: '/mahasiswa' })
         try {
             const sql = `
                 SELECT m.id, m.nim, m.nama, m.angkatan, m.kelamin, m.prodi, m.lulus,
+                       m.tgl_lahir, m.kodedsn, m.foto, m.ijazah,
                        d.nama AS nama_dosen_wali
                 FROM mahasiswa m
                 LEFT JOIN dosen d ON m.kodedsn = d.kodedsn
