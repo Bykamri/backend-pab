@@ -26,11 +26,16 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     // 1. REGISTER OTOMATIS (Default: Mahasiswa)
     // ==========================================
     .post('/register', async ({ body, set }: any) => {
-        const { password, nama, prodi } = body;
+        const { password, nama, prodi, tgl_lahir, kelamin } = body;
 
-        if (!nama || !prodi || !password) {
+        if (!nama || !prodi || !password || !tgl_lahir || !kelamin) {
             set.status = 400;
-            return { status: 'error', message: 'Nama, Prodi, dan Password wajib diisi!' };
+            return { status: 'error', message: 'Nama, Prodi, Password, Tanggal Lahir, dan Jenis Kelamin wajib diisi!' };
+        }
+
+        if (kelamin !== 'Laki-laki' && kelamin !== 'Perempuan') {
+            set.status = 400;
+            return { status: 'error', message: 'Jenis kelamin harus Laki-laki atau Perempuan' };
         }
 
         try {
@@ -74,8 +79,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
                     params: [generatedNim, hashedPassword],
                 },
                 {
-                    query: `INSERT INTO mahasiswa (nim, nama, angkatan, prodi, lulus) VALUES (?, ?, ?, ?, ?)`,
-                    params: [generatedNim, nama, fullYear.toString(), prodi, 0],
+                    query: `INSERT INTO mahasiswa (nim, nama, angkatan, prodi, tgl_lahir, kelamin, lulus) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    params: [generatedNim, nama, fullYear.toString(), prodi, tgl_lahir, kelamin, 0],
                 },
             ]);
 
