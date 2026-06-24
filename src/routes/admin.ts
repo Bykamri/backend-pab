@@ -39,6 +39,38 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     })
 
     // ==========================================
+    // 1b. STATISTIK PER PRODI (untuk chart)
+    // ==========================================
+    .get('/stats-prodi', async () => {
+        try {
+            const mhsRows = await executeQuery(
+                `SELECT prodi, COUNT(*) AS total
+                 FROM mahasiswa
+                 WHERE prodi IS NOT NULL AND prodi <> ''
+                 GROUP BY prodi
+                 ORDER BY total DESC`
+            );
+            const dsnRows = await executeQuery(
+                `SELECT prodi, COUNT(*) AS total
+                 FROM dosen
+                 WHERE prodi IS NOT NULL AND prodi <> ''
+                 GROUP BY prodi
+                 ORDER BY total DESC`
+            );
+
+            return {
+                status: 'success',
+                data: {
+                    mahasiswa: mhsRows.map((r: any) => ({ prodi: r.prodi, total: Number(r.total ?? 0) })),
+                    dosen:     dsnRows.map((r: any) => ({ prodi: r.prodi, total: Number(r.total ?? 0) })),
+                },
+            };
+        } catch (error: any) {
+            return { status: 'error', message: error.message };
+        }
+    })
+
+    // ==========================================
     // 2. MANAJEMEN MASTER MATAKULIAH
     // ==========================================
     .post('/matakuliah', async ({ body, set }: any) => {
