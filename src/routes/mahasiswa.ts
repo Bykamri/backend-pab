@@ -24,7 +24,7 @@ export const mahasiswaRoutes = new Elysia({ prefix: '/mahasiswa' })
             );
 
             const krs = await executeQuery(
-                `SELECT mk.kodemk, mk.namamk, mk.sks, k.nilai_huruf
+                `SELECT mk.kodemk, mk.namamk, mk.sks, mk.jam_kuliah, k.nilai_huruf
                  FROM krs k
                  JOIN matakuliah mk ON k.kodemk = mk.kodemk
                  WHERE k.nim = ?`,
@@ -108,6 +108,81 @@ export const mahasiswaRoutes = new Elysia({ prefix: '/mahasiswa' })
         }
     })
 
+    // GET /mahasiswa/krs/available → Matakuliah yang BELUM diambil mahasiswa
+    .get('/krs/available', async ({ user, set }: any) => {
+        if (!user || user.role !== 'mahasiswa') {
+            set.status = 403;
+            return { status: 'error', message: 'Akses ditolak. Khusus Mahasiswa.' };
+        }
+        try {
+            const rows = await executeQuery(`
+                SELECT mk.kodemk, mk.namamk, mk.sks, mk.jam_kuliah
+                FROM matakuliah mk
+                WHERE mk.kodemk NOT IN (
+                    SELECT kodemk FROM krs WHERE nim = ?
+                )
+                ORDER BY mk.kodemk ASC
+            `, [user.username]);
+            return { status: 'success', data: rows };
+        } catch (error: any) {
+            set.status = 500;
+            return { status: 'error', message: error.message };
+        }
+    })
+
+    // POST /mahasiswa/krs → Ambil matakuliah (enroll)
+    .post('/krs', async ({ body, user, set }: any) => {
+        if (!user || user.role !== 'mahasiswa') {
+            set.status = 403;
+            return { status: 'error', message: 'Akses ditolak. Khusus Mahasiswa.' };
+        }
+        const { kodemk } = body;
+        if (!kodemk) {
+            set.status = 400;
+            return { status: 'error', message: 'kodemk wajib diisi' };
+        }
+        try {
+            await executeQuery(
+                'INSERT INTO krs (nim, kodemk, nilai_huruf) VALUES (?, ?, NULL)',
+                [user.username, kodemk]
+            );
+            return { status: 'success', message: 'Matakuliah berhasil diambil' };
+        } catch (error: any) {
+            set.status = 500;
+            return { status: 'error', message: error.message };
+        }
+    })
+
+    // DELETE /mahasiswa/krs/:kodemk → Batalkan matakuliah (hanya jika belum dinilai)
+    .delete('/krs/:kodemk', async ({ params, user, set }: any) => {
+        if (!user || user.role !== 'mahasiswa') {
+            set.status = 403;
+            return { status: 'error', message: 'Akses ditolak. Khusus Mahasiswa.' };
+        }
+        try {
+            const existing = await executeQuery(
+                'SELECT nilai_huruf FROM krs WHERE nim = ? AND kodemk = ?',
+                [user.username, params.kodemk]
+            );
+            if (existing.length === 0) {
+                set.status = 404;
+                return { status: 'error', message: 'Matakuliah tidak ditemukan di KRS Anda' };
+            }
+            if (existing[0].nilai_huruf) {
+                set.status = 400;
+                return { status: 'error', message: 'Tidak bisa membatalkan, matakuliah sudah dinilai' };
+            }
+            await executeQuery(
+                'DELETE FROM krs WHERE nim = ? AND kodemk = ?',
+                [user.username, params.kodemk]
+            );
+            return { status: 'success', message: 'Matakuliah berhasil dibatalkan' };
+        } catch (error: any) {
+            set.status = 500;
+            return { status: 'error', message: error.message };
+        }
+    })
+
     // GET /mahasiswa → Daftar semua mahasiswa (Admin & Dosen)
     .get('/', async ({ user, set }: any) => {
         if (!user || (user.role !== 'admin' && user.role !== 'dosen')) {
@@ -154,6 +229,32 @@ export const mahasiswaRoutes = new Elysia({ prefix: '/mahasiswa' })
     })
 
     // PUT /mahasiswa/:nim → Update mahasiswa (Admin)
+    // GET /mahasiswa/:nim → detail (Admin/Dosen). Dipakai detail page untuk refresh.
+    .get('/:nim', async ({ params, user, set }: any) => {
+        if (!user || (user.role !== 'admin' && user.role !== 'dosen')) {
+            set.status = 403;
+            return { status: 'error', message: 'Akses ditolak.' };
+        }
+        try {
+            const rows = await executeQuery(`
+                SELECT m.id, m.nim, m.nama, m.angkatan, m.kelamin, m.prodi, m.lulus,
+                       m.tgl_lahir, m.kodedsn, m.foto, m.ijazah,
+                       d.nama AS nama_dosen_wali
+                FROM mahasiswa m
+                LEFT JOIN dosen d ON m.kodedsn = d.kodedsn
+                WHERE m.nim = ?
+            `, [params.nim]);
+            if (rows.length === 0) {
+                set.status = 404;
+                return { status: 'error', message: 'Mahasiswa tidak ditemukan' };
+            }
+            return { status: 'success', data: rows[0] };
+        } catch (error: any) {
+            set.status = 500;
+            return { status: 'error', message: error.message };
+        }
+    })
+
     .put('/:nim', async ({ params, body, user, set }: any) => {
         if (!user || user.role !== 'admin') {
             set.status = 403;

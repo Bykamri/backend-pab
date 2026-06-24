@@ -74,11 +74,11 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     // 2. MANAJEMEN MASTER MATAKULIAH
     // ==========================================
     .post('/matakuliah', async ({ body, set }: any) => {
-        const { kodemk, namamk, sks } = body;
+        const { kodemk, namamk, sks, jam_kuliah } = body;
         try {
             await executeQuery(
-                'INSERT INTO matakuliah (kodemk, namamk, sks) VALUES (?, ?, ?)',
-                [kodemk, namamk, sks]
+                'INSERT INTO matakuliah (kodemk, namamk, sks, jam_kuliah) VALUES (?, ?, ?, ?)',
+                [kodemk, namamk, sks, jam_kuliah ?? null]
             );
             return { status: 'success', message: 'Matakuliah berhasil ditambahkan' };
         } catch (error: any) {
@@ -88,13 +88,31 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     })
 
     .put('/matakuliah/:kodemk', async ({ params, body, set }: any) => {
-        const { namamk, sks } = body;
+        const { namamk, sks, jam_kuliah } = body;
         try {
             await executeQuery(
-                'UPDATE matakuliah SET namamk = ?, sks = ? WHERE kodemk = ?',
-                [namamk, sks, params.kodemk]
+                'UPDATE matakuliah SET namamk = ?, sks = ?, jam_kuliah = ? WHERE kodemk = ?',
+                [namamk, sks, jam_kuliah ?? null, params.kodemk]
             );
             return { status: 'success', message: 'Matakuliah berhasil diperbarui' };
+        } catch (error: any) {
+            set.status = 500;
+            return { status: 'error', message: error.message };
+        }
+    })
+
+    // Admin: lihat semua nilai mahasiswa di sebuah matakuliah
+    .get('/matakuliah/:kodemk/nilai', async ({ params, set }: any) => {
+        try {
+            const rows = await executeQuery(`
+                SELECT k.id AS id_krs, m.nim, m.nama AS nama_mahasiswa, m.prodi, m.angkatan,
+                       k.nilai_huruf
+                FROM krs k
+                JOIN mahasiswa m ON k.nim = m.nim
+                WHERE k.kodemk = ?
+                ORDER BY m.angkatan DESC, m.nim ASC
+            `, [params.kodemk]);
+            return { status: 'success', data: rows };
         } catch (error: any) {
             set.status = 500;
             return { status: 'error', message: error.message };

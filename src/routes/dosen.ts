@@ -18,8 +18,11 @@ export const dosenRoutes = new Elysia({ prefix: '/dosen' })
         }
 
         try {
-            // Semua orang (termasuk mahasiswa) boleh melihat daftar dosen aktif
-            const sql = `SELECT kodedsn, nama, kelamin, prodi FROM dosen WHERE aktif = 1 ORDER BY nama ASC`;
+            // Admin: lihat SEMUA dosen (aktif + non-aktif) dengan kolom lengkap.
+            // Role lain: hanya dosen aktif dengan kolom terbatas.
+            const sql = user.role === 'admin'
+                ? `SELECT kodedsn, nama, kelamin, tgl_lahir, prodi, aktif FROM dosen ORDER BY nama ASC`
+                : `SELECT kodedsn, nama, kelamin, prodi FROM dosen WHERE aktif = 1 ORDER BY nama ASC`;
             const rows = await executeQuery(sql);
             return { status: 'success', data: rows };
         } catch (error: any) {
@@ -192,6 +195,28 @@ export const dosenRoutes = new Elysia({ prefix: '/dosen' })
             );
 
             return { status: 'success', message: 'Nilai huruf berhasil disimpan ke KRS mahasiswa' };
+        } catch (error: any) {
+            set.status = 500;
+            return { status: 'error', message: error.message };
+        }
+    })
+
+    // GET /dosen/:kodedsn → detail (admin saja). DI BAWAH semua route statis di atas.
+    .get('/:kodedsn', async ({ params, user, set }: any) => {
+        if (!user || user.role !== 'admin') {
+            set.status = 403;
+            return { status: 'error', message: 'Akses ditolak.' };
+        }
+        try {
+            const rows = await executeQuery(
+                `SELECT kodedsn, nama, kelamin, tgl_lahir, prodi, aktif FROM dosen WHERE kodedsn = ?`,
+                [params.kodedsn]
+            );
+            if (rows.length === 0) {
+                set.status = 404;
+                return { status: 'error', message: 'Dosen tidak ditemukan' };
+            }
+            return { status: 'success', data: rows[0] };
         } catch (error: any) {
             set.status = 500;
             return { status: 'error', message: error.message };
