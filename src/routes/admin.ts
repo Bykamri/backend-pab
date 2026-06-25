@@ -3,6 +3,34 @@ import { Elysia } from 'elysia';
 import { executeQuery } from '../db';
 import { authGuard } from '../middleware/authGuard';
 
+// Format kodedsn: D{kodeProdi3}{noUrut3}
+// Contoh: Teknik Informatika → D146001
+const prodiCodes: Record<string, string> = {
+    'Teknik Informatika': '146',
+    'Sistem Informasi':   '147',
+    'Sains Data':         '148',
+    'Teknik Komputer':    '149',
+    'Bisnis Digital':     '150',
+    'Teknik Elektro':     '151',
+    'Teknik Sipil':       '152',
+    'Teknik Mesin':       '153',
+};
+
+async function generateKodedsn(prodi: string): Promise<string> {
+    const kodeProdi  = prodiCodes[prodi] || '999';
+    const prefix     = `D${kodeProdi}`;
+    const last = await executeQuery(
+        `SELECT kodedsn FROM dosen WHERE kodedsn LIKE ? ORDER BY kodedsn DESC LIMIT 1`,
+        [`${prefix}%`]
+    );
+    let urut = 1;
+    if (last.length > 0) {
+        const lastUrut = parseInt(last[0].kodedsn.replace(prefix, ''), 10);
+        if (!isNaN(lastUrut)) urut = lastUrut + 1;
+    }
+    return `${prefix}${urut.toString().padStart(3, '0')}`;
+}
+
 export const adminRoutes = new Elysia({ prefix: '/admin' })
     .use(authGuard)
 
@@ -136,13 +164,23 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     // 3. MANAJEMEN MASTER DOSEN
     // ==========================================
     .post('/dosen', async ({ body, set }: any) => {
-        const { kodedsn, nama, kelamin, tgl_lahir, prodi, aktif } = body;
+        const { nama, kelamin, tgl_lahir, prodi, aktif } = body;
+        if (!nama || !prodi) {
+            set.status = 400;
+            return { status: 'error', message: 'Nama dan Prodi wajib diisi' };
+        }
         try {
+            // kodedsn selalu di-generate otomatis dari prodi
+            const generatedKode = await generateKodedsn(prodi);
             await executeQuery(
                 'INSERT INTO dosen (kodedsn, nama, kelamin, tgl_lahir, prodi, aktif) VALUES (?, ?, ?, ?, ?, ?)',
-                [kodedsn, nama, kelamin, tgl_lahir, prodi, aktif]
+                [generatedKode, nama, kelamin, tgl_lahir, prodi, aktif ?? 1]
             );
-            return { status: 'success', message: 'Dosen berhasil ditambahkan' };
+            return {
+                status: 'success',
+                message: 'Dosen berhasil ditambahkan',
+                data: { kodedsn: generatedKode },
+            };
         } catch (error: any) {
             set.status = 500;
             return { status: 'error', message: error.message };
