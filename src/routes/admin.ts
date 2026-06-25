@@ -74,11 +74,11 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     // 2. MANAJEMEN MASTER MATAKULIAH
     // ==========================================
     .post('/matakuliah', async ({ body, set }: any) => {
-        const { kodemk, namamk, sks, jam_kuliah } = body;
+        const { kodemk, namamk, sks, jam_kuliah, prodi } = body;
         try {
             await executeQuery(
-                'INSERT INTO matakuliah (kodemk, namamk, sks, jam_kuliah) VALUES (?, ?, ?, ?)',
-                [kodemk, namamk, sks, jam_kuliah ?? null]
+                'INSERT INTO matakuliah (kodemk, namamk, sks, jam_kuliah, prodi) VALUES (?, ?, ?, ?, ?)',
+                [kodemk, namamk, sks, jam_kuliah ?? null, prodi ?? null]
             );
             return { status: 'success', message: 'Matakuliah berhasil ditambahkan' };
         } catch (error: any) {
@@ -88,11 +88,11 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     })
 
     .put('/matakuliah/:kodemk', async ({ params, body, set }: any) => {
-        const { namamk, sks, jam_kuliah } = body;
+        const { namamk, sks, jam_kuliah, prodi } = body;
         try {
             await executeQuery(
-                'UPDATE matakuliah SET namamk = ?, sks = ?, jam_kuliah = ? WHERE kodemk = ?',
-                [namamk, sks, jam_kuliah ?? null, params.kodemk]
+                'UPDATE matakuliah SET namamk = ?, sks = ?, jam_kuliah = ?, prodi = ? WHERE kodemk = ?',
+                [namamk, sks, jam_kuliah ?? null, prodi ?? null, params.kodemk]
             );
             return { status: 'success', message: 'Matakuliah berhasil diperbarui' };
         } catch (error: any) {

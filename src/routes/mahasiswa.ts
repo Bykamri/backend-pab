@@ -24,7 +24,7 @@ export const mahasiswaRoutes = new Elysia({ prefix: '/mahasiswa' })
             );
 
             const krs = await executeQuery(
-                `SELECT mk.kodemk, mk.namamk, mk.sks, mk.jam_kuliah, k.nilai_huruf
+                `SELECT mk.kodemk, mk.namamk, mk.sks, mk.jam_kuliah, mk.prodi, k.nilai_huruf
                  FROM krs k
                  JOIN matakuliah mk ON k.kodemk = mk.kodemk
                  WHERE k.nim = ?`,
@@ -108,43 +108,58 @@ export const mahasiswaRoutes = new Elysia({ prefix: '/mahasiswa' })
         }
     })
 
-    // GET /mahasiswa/krs/available → Matakuliah yang BELUM diambil mahasiswa
+    // GET /mahasiswa/krs/available → Matakuliah belum diambil + slot pengampu (untuk dipilih)
     .get('/krs/available', async ({ user, set }: any) => {
         if (!user || user.role !== 'mahasiswa') {
             set.status = 403;
             return { status: 'error', message: 'Akses ditolak. Khusus Mahasiswa.' };
         }
         try {
+            const mhs = await executeQuery('SELECT prodi FROM mahasiswa WHERE nim = ?', [user.username]);
+            const prodiMhs = mhs[0]?.prodi ?? null;
+
             const rows = await executeQuery(`
-                SELECT mk.kodemk, mk.namamk, mk.sks, mk.jam_kuliah
+                SELECT mk.kodemk, mk.namamk, mk.sks, mk.jam_kuliah, mk.prodi
                 FROM matakuliah mk
-                WHERE mk.kodemk NOT IN (
-                    SELECT kodemk FROM krs WHERE nim = ?
-                )
+                WHERE mk.kodemk NOT IN (SELECT kodemk FROM krs WHERE nim = ?)
+                  AND (mk.prodi IS NULL OR mk.prodi = '' OR mk.prodi = ?)
                 ORDER BY mk.kodemk ASC
-            `, [user.username]);
-            return { status: 'success', data: rows };
+            `, [user.username, prodiMhs]);
+
+            // Lampirkan slot (pengampu+jam) untuk tiap matakuliah agar mahasiswa bisa pilih
+            const withSlots = await Promise.all(rows.map(async (mk: any) => {
+                const slots = await executeQuery(`
+                    SELECT dm.jam_kuliah, d.kodedsn, d.nama AS nama_dosen
+                    FROM dosen_matakuliah dm
+                    JOIN dosen d ON dm.kodedsn = d.kodedsn
+                    WHERE dm.kodemk = ? AND d.aktif = 1
+                    ORDER BY dm.jam_kuliah NULLS LAST
+                `, [mk.kodemk]);
+                return { ...mk, slots };
+            }));
+
+            return { status: 'success', data: withSlots };
         } catch (error: any) {
             set.status = 500;
             return { status: 'error', message: error.message };
         }
     })
 
-    // POST /mahasiswa/krs → Ambil matakuliah (enroll)
+    // POST /mahasiswa/krs → Ambil matakuliah (enroll) di slot jam tertentu
     .post('/krs', async ({ body, user, set }: any) => {
         if (!user || user.role !== 'mahasiswa') {
             set.status = 403;
             return { status: 'error', message: 'Akses ditolak. Khusus Mahasiswa.' };
         }
-        const { kodemk } = body;
+        const { kodemk, jam_kuliah } = body;
         if (!kodemk) {
             set.status = 400;
             return { status: 'error', message: 'kodemk wajib diisi' };
         }
         try {
             await executeQuery(
-                'INSERT INTO krs (nim, kodemk, nilai_huruf) VALUES (?, ?, NULL)',
-                [user.username, kodemk]
+                'INSERT INTO krs (nim, kodemk, jam_kuliah, nilai_huruf) VALUES (?, ?, ?, NULL)',
+                [user.username, kodemk, jam_kuliah ?? null]
             );
             return { status: 'success', message: 'Matakuliah berhasil diambil' };
         } catch (error: any) {
